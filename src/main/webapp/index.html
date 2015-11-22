@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <title>Ready For You</title>
+
+  <!-- Bootstrap -->
+  <link href="/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+  <!--[if lt IE 9]>
+    <script src="/bower_components/html5shiv/dist/html5shiv.min.js"></script>
+    <script src="/bower_components/respond/dest/respond.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div class="container">
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <div class="row">
+    <div class="col-md-12 text-center">
+      <img id="iImg" src="/img/mic.gif" onclick="toggle()">
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="iModel">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Message</h4>
+      </div>
+      <div class="modal-body" id="iModelBody">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="/bower_components/jquery/dist/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+</body>
+<script>
+  function speak(textToSpeak) {
+    // 创建一个SpeechSynthesisUtterance实例
+    var newUtterance = new SpeechSynthesisUtterance();
+    // 设置要发音的内容
+    newUtterance.text = textToSpeak;
+    // 添加在发音队列中
+    window.speechSynthesis.speak(newUtterance);
+  }
+</script>
+<script>
+  var final_transcript = '';
+  var recognizing = false;
+  var ignore_onend;
+  if (!('webkitSpeechRecognition' in window)) {
+    showModel("<p>Your browser not support [Web Speech API]!</p>");
+  } else {
+    var recognition = new webkitSpeechRecognition();
+    recognition.continuous = false;//continuous属性的默认值是false，代表当用户停止说话时，语音识别将结束。在这个演示中 ，我们将它设置为true，这样即便用户暂时停止讲话，语音识别也将会继续。
+    recognition.interimResults = true;//interimResults属性的默认值也是false，代表语音识别器的返回值不会改变。
+
+    recognition.onstart = function() {
+      console.log("recognition.onstart");
+      recognizing = true;
+      $("#iImg").attr("src","/img/mic-animate.gif");
+    };
+
+    recognition.onerror = function(event) {
+      console.log("recognition.onerror");
+      if (event.error == 'no-speech' || event.error == 'audio-capture') {
+        $("#iImg").attr("src","/img/mic.gif");
+        console.log("no speech or audio capture");
+        ignore_onend = true;
+      }
+      if (event.error == 'not-allowed') {
+        $("#iImg").attr("src","/img/mic-slash.gif");
+        ignore_onend = true;
+      }
+    };
+
+    recognition.onend = function() {
+      console.log("recognition.onend");
+      recognizing = false;
+      if (ignore_onend) {
+        return;
+      }
+      $("#iImg").attr("src","/img/mic.gif");
+      if (!final_transcript) {
+        console.log("!final_transcript");
+        return;
+      }else{
+        hongke(true,final_transcript);
+      }
+    };
+
+    recognition.onresult = function(event) {
+      console.log("recognition.onresult");
+      var interim_transcript = '';
+      if (typeof(event.results) == 'undefined') {
+        recognition.onend = null;
+        recognition.stop();
+        showModel("<p>Your browser not support [Web Speech API]!</p>");
+        return;
+      }
+      for (var i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          final_transcript += event.results[i][0].transcript;
+        } else {
+          interim_transcript += event.results[i][0].transcript;
+        }
+      }
+      hongke(false,interim_transcript);
+    };
+  }
+  function hongke(final,response){
+    console.log("function hongke(response):"+final+":"+response);
+    //speak(response);//不支持中文
+    if("泡脚" == response){
+      if(!final){
+        recognition.stop();
+      }
+    }else{
+      if(final){
+        console.log("response incorrect!");
+      }
+    }
+  }
+  function toggle() {
+    console.log("function toggle()");
+    if (recognizing) {
+      recognition.stop();
+      return;
+    }
+    final_transcript = '';
+    ignore_onend = false;
+    recognition.lang = "cmn-Hans-CN";
+    recognition.start();
+//    $("#iImg").attr("src","/img/mic-slash.gif");
+  }
+  function showModel(msg){
+    $("#iModelBody").html(msg);
+    $("#iModel").modal();
+  }
+</script>
+</html>
